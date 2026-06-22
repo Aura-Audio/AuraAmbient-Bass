@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuroAmbient-Bass</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #111; color: #0f0; text-align: center; padding: 50px; }
+        button { padding: 10px 20px; background: #0f0; color: #111; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>AuroAmbient-Bass</h1>
+    <p>Generative Ambient Bass for your apartment.</p>
+    
+    <label>Mood: <input type="text" id="mood" value="calm"></label><br><br>
+    <label>Frequency Preference (Hz): <input type="number" id="freq" value="60"></label><br><br>
+    
+    <button onclick="generateAndPlay()">Generate & Play Bass</button>
+    <button onclick="stopAudio()">Stop</button>
+    
+    <script>
+        let audioContext;
+        let oscillator;
+        let gainNode;
+        
+        function generateAndPlay() {
+            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            const mood = document.getElementById('mood').value.toLowerCase();
+            const freq = parseInt(document.getElementById('freq').value) || 60;
+            
+            // Time of day adjustment
+            const hour = new Date().getHours();
+            let baseFreq = freq;
+            if (hour > 18 || hour < 6) baseFreq = freq * 0.8; // Deeper at night
+            
+            oscillator = audioContext.createOscillator();
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
+            
+            gainNode = audioContext.createGain();
+            gainNode.gain.value = 0.3;
+            
+            // Simple filter for ambiance
+            const filter = audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 200;
+            
+            oscillator.connect(filter);
+            filter.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.start();
+            
+            console.log(`Playing ambient bass: freq ~${baseFreq}Hz, mood: ${mood}, time: ${hour}hr`);
+        }
+        
+        function stopAudio() {
+            if (oscillator) {
+                oscillator.stop();
+                oscillator = null;
+            }
+        }
+    </script>
+</body>
+</html>
