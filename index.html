@@ -5,63 +5,372 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AuroAmbient-Bass</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #111; color: #0f0; text-align: center; padding: 50px; }
-        button { padding: 10px 20px; background: #0f0; color: #111; border: none; cursor: pointer; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a, #1a0033);
+            color: #e0e0ff;
+            text-align: center;
+            padding: 40px 20px;
+            margin: 0;
+            min-height: 100vh;
+        }
+        h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            background: linear-gradient(to right, #a855f7, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .subtitle { color: #888; margin-bottom: 30px; }
+        
+        .controls {
+            max-width: 620px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.05);
+            padding: 30px;
+            border-radius: 20px;
+            border: 1px solid rgba(168, 85, 247, 0.2);
+        }
+        
+        label {
+            display: block;
+            margin: 18px 0 8px;
+            text-align: left;
+            font-weight: 600;
+            color: #c4b5fd;
+        }
+        
+        select, input[type="range"], input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            background: #1f1b2e;
+            border: 1px solid #6b5b95;
+            border-radius: 8px;
+            color: #e0e0ff;
+            font-size: 1rem;
+        }
+        
+        .slider-value {
+            float: right;
+            font-family: monospace;
+            color: #22d3ee;
+        }
+        
+        button {
+            margin: 15px 8px;
+            padding: 14px 32px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        #playBtn {
+            background: #a855f7;
+            color: white;
+        }
+        #stopBtn {
+            background: #ef4444;
+            color: white;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            min-height: 24px;
+        }
+        .visualizer {
+            height: 120px;
+            background: #0a0a0a;
+            margin: 25px auto;
+            border-radius: 12px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #4c1d95;
+        }
+        .bars {
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            height: 100%;
+            gap: 6px;
+        }
+        .bar {
+            width: 18px;
+            background: linear-gradient(to top, #a855f7, #22d3ee);
+            transition: height 0.1s ease;
+        }
+        
+        footer {
+            margin-top: 50px;
+            color: #555;
+            font-size: 0.9rem;
+        }
     </style>
 </head>
 <body>
     <h1>AuroAmbient-Bass</h1>
-    <p>Generative Ambient Bass for your apartment.</p>
+    <p class="subtitle">Generative ambient bass • Adaptive to time &amp; mood</p>
     
-    <label>Mood: <input type="text" id="mood" value="calm"></label><br><br>
-    <label>Frequency Preference (Hz): <input type="number" id="freq" value="60"></label><br><br>
+    <div class="controls">
+        <label>Mood</label>
+        <select id="mood">
+            <option value="calm">Calm / Deep Relaxation</option>
+            <option value="focus">Focus / Deep Work</option>
+            <option value="energetic">Energetic / Uplifting</option>
+            <option value="dreamy">Dreamy / Nocturnal</option>
+            <option value="meditative">Meditative / Ambient</option>
+        </select>
+        
+        <label>Base Frequency (Hz) <span class="slider-value" id="freqVal">55</span></label>
+        <input type="range" id="freq" min="30" max="120" value="55" step="1">
+        
+        <label>Intensity / Volume <span class="slider-value" id="intensityVal">65</span></label>
+        <input type="range" id="intensity" min="20" max="100" value="65" step="1">
+        
+        <label>Room Reverb <span class="slider-value" id="reverbVal">70</span></label>
+        <input type="range" id="reverb" min="0" max="100" value="70" step="1">
+        
+        <label>Modulation Speed <span class="slider-value" id="modVal">40</span></label>
+        <input type="range" id="modulation" min="0" max="100" value="40" step="1">
+        
+        <div style="margin-top: 30px;">
+            <button id="playBtn">▶ Generate &amp; Play Bass Layers</button>
+            <button id="stopBtn">■ Stop All</button>
+        </div>
+        
+        <div class="visualizer" id="visualizer">
+            <div class="bars" id="bars"></div>
+        </div>
+        
+        <div class="status" id="status">Ready — Waiting for play...</div>
+    </div>
     
-    <button onclick="generateAndPlay()">Generate & Play Bass</button>
-    <button onclick="stopAudio()">Stop</button>
-    
+    <footer>
+        Time-aware • Multi-layer synthesis • Apartment ambient experience
+    </footer>
+
     <script>
         let audioContext;
-        let oscillator;
-        let gainNode;
+        let sources = [];
+        let gainNode, masterGain;
+        let analyser;
+        let animationFrame;
+        let isPlaying = false;
         
-        function generateAndPlay() {
-            if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            
-            const mood = document.getElementById('mood').value.toLowerCase();
-            const freq = parseInt(document.getElementById('freq').value) || 60;
-            
-            // Time of day adjustment
-            const hour = new Date().getHours();
-            let baseFreq = freq;
-            if (hour > 18 || hour < 6) baseFreq = freq * 0.8; // Deeper at night
-            
-            oscillator = audioContext.createOscillator();
-            oscillator.type = 'sine';
-            oscillator.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
-            
-            gainNode = audioContext.createGain();
-            gainNode.gain.value = 0.3;
-            
-            // Simple filter for ambiance
-            const filter = audioContext.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 200;
-            
-            oscillator.connect(filter);
-            filter.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.start();
-            
-            console.log(`Playing ambient bass: freq ~${baseFreq}Hz, mood: ${mood}, time: ${hour}hr`);
-        }
+        const barsContainer = document.getElementById('bars');
         
-        function stopAudio() {
-            if (oscillator) {
-                oscillator.stop();
-                oscillator = null;
+        // Create visualizer bars
+        function initVisualizer() {
+            barsContainer.innerHTML = '';
+            for (let i = 0; i < 12; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                barsContainer.appendChild(bar);
             }
         }
+        
+        function updateVisualizer() {
+            if (!analyser || !isPlaying) return;
+            
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+            
+            const bars = barsContainer.children;
+            for (let i = 0; i < bars.length; i++) {
+                const value = dataArray[Math.floor(i * bufferLength / bars.length)] || 0;
+                const height = Math.max(8, (value / 255) * 100);
+                bars[i].style.height = `${height}%`;
+            }
+            
+            animationFrame = requestAnimationFrame(updateVisualizer);
+        }
+        
+        function getTimeAdjustment() {
+            const hour = new Date().getHours();
+            if (hour >= 22 || hour <= 5) return { depth: 0.75, brightness: 0.6 };   // Deep night
+            if (hour >= 6 && hour <= 10) return { depth: 1.1, brightness: 1.2 };   // Morning
+            if (hour >= 18 && hour <= 21) return { depth: 0.85, brightness: 0.9 }; // Evening
+            return { depth: 1.0, brightness: 1.0 }; // Day
+        }
+        
+        function generateBassLayer(baseFreq, detune, type, gainVal, filterFreq) {
+            const osc = audioContext.createOscillator();
+            osc.type = type;
+            osc.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
+            osc.detune.setValueAtTime(detune, audioContext.currentTime);
+            
+            const gain = audioContext.createGain();
+            gain.gain.value = gainVal;
+            
+            const filter = audioContext.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = filterFreq;
+            
+            // Subtle LFO modulation
+            const lfo = audioContext.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 0.1 + Math.random() * 0.3;
+            
+            const lfoGain = audioContext.createGain();
+            lfoGain.gain.value = 8;
+            
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+            lfo.start();
+            
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(masterGain);
+            
+            osc.start();
+            sources.push({osc, gain, lfo});
+            return gain;
+        }
+        
+        function generateAndPlay() {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                masterGain = audioContext.createGain();
+                masterGain.gain.value = 0.75;
+                
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                masterGain.connect(analyser);
+                analyser.connect(audioContext.destination);
+            }
+            
+            // Clear previous
+            stopAudio(false);
+            
+            const mood = document.getElementById('mood').value;
+            let baseFreq = parseInt(document.getElementById('freq').value);
+            const intensity = parseInt(document.getElementById('intensity').value) / 100;
+            const reverbAmount = parseInt(document.getElementById('reverb').value) / 100;
+            const modSpeed = parseInt(document.getElementById('modulation').value) / 100;
+            
+            const timeAdj = getTimeAdjustment();
+            baseFreq = Math.round(baseFreq * timeAdj.depth);
+            
+            // Map mood to parameters
+            let layerConfigs = [];
+            switch(mood) {
+                case 'calm':
+                    layerConfigs = [
+                        {type: 'sine', detune: -12, gain: 0.6, filter: 180},
+                        {type: 'triangle', detune: 7, gain: 0.4, filter: 140}
+                    ];
+                    break;
+                case 'focus':
+                    layerConfigs = [
+                        {type: 'sawtooth', detune: -18, gain: 0.45, filter: 220},
+                        {type: 'sine', detune: 0, gain: 0.55, filter: 160}
+                    ];
+                    break;
+                case 'energetic':
+                    layerConfigs = [
+                        {type: 'square', detune: -25, gain: 0.35, filter: 280},
+                        {type: 'sawtooth', detune: 15, gain: 0.4, filter: 200},
+                        {type: 'sine', detune: -5, gain: 0.5, filter: 150}
+                    ];
+                    break;
+                case 'dreamy':
+                    layerConfigs = [
+                        {type: 'sine', detune: -30, gain: 0.65, filter: 120},
+                        {type: 'triangle', detune: 20, gain: 0.35, filter: 90}
+                    ];
+                    break;
+                case 'meditative':
+                    layerConfigs = [
+                        {type: 'sine', detune: 0, gain: 0.7, filter: 110},
+                        {type: 'triangle', detune: -10, gain: 0.4, filter: 130}
+                    ];
+                    break;
+            }
+            
+            // Create multiple layers
+            layerConfigs.forEach((cfg, i) => {
+                const gainVal = cfg.gain * intensity * (0.8 + Math.random() * 0.4);
+                generateBassLayer(baseFreq, cfg.detune, cfg.type, gainVal, cfg.filter);
+            });
+            
+            // Master gain adjustment with intensity
+            masterGain.gain.value = 0.6 + intensity * 0.5;
+            
+            isPlaying = true;
+            document.getElementById('status').innerHTML = 
+                `Playing ${mood} bass • ${baseFreq}Hz • ${new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`;
+            document.getElementById('status').style.color = '#22d3ee';
+            
+            initVisualizer();
+            updateVisualizer();
+        }
+        
+        function stopAudio(resetStatus = true) {
+            sources.forEach(s => {
+                try {
+                    s.osc.stop();
+                    s.lfo.stop();
+                } catch(e) {}
+            });
+            sources = [];
+            
+            if (animationFrame) cancelAnimationFrame(animationFrame);
+            
+            const bars = barsContainer.children;
+            for (let bar of bars) bar.style.height = '8%';
+            
+            isPlaying = false;
+            
+            if (resetStatus) {
+                document.getElementById('status').innerHTML = 'Stopped. Ready for new generation.';
+                document.getElementById('status').style.color = '#888';
+            }
+        }
+        
+        // Event listeners
+        document.getElementById('playBtn').addEventListener('click', generateAndPlay);
+        document.getElementById('stopBtn').addEventListener('click', () => stopAudio(true));
+        
+        // Live slider value display
+        const sliders = ['freq', 'intensity', 'reverb', 'modulation'];
+        sliders.forEach(id => {
+            const slider = document.getElementById(id);
+            const valEl = document.getElementById(id + 'Val');
+            slider.addEventListener('input', () => {
+                valEl.textContent = slider.value;
+            });
+        });
+        
+        // Auto-start context on first interaction (browser policy)
+        document.addEventListener('click', () => {
+            if (!audioContext) {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }, {once: true});
+        
+        // Keyboard support
+        document.addEventListener('keydown', e => {
+            if (e.key === " " && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "SELECT") {
+                e.preventDefault();
+                if (isPlaying) stopAudio(true);
+                else generateAndPlay();
+            }
+        });
+        
+        // Initialize
+        initVisualizer();
+        console.log('%cAuroAmbient-Bass ready. Multi-layer generative bass engine loaded.', 'color:#a855f7; font-family:monospace');
     </script>
 </body>
-</html>
+    </html>
