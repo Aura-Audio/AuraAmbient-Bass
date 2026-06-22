@@ -3,374 +3,401 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AuroAmbient-Bass</title>
+    <title>AuraAmbient-Bass | Generative Audio</title>
+    <!-- Tone.js for Web Audio Synthesis -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
-        
-        body {
-            font-family: 'Inter', system-ui, sans-serif;
-            background: linear-gradient(135deg, #0a0a0a, #1a0033);
-            color: #e0e0ff;
-            text-align: center;
-            padding: 40px 20px;
-            margin: 0;
-            min-height: 100vh;
+        :root {
+            --bg-color: #0b0f19;
+            --panel-bg: rgba(255, 255, 255, 0.05);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.6);
         }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: radial-gradient(circle at center, #1e1b4b 0%, var(--bg-color) 100%);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            padding: 2rem;
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            z-index: 10;
+        }
+
         h1 {
-            font-size: 2.8rem;
-            margin-bottom: 10px;
-            background: linear-gradient(to right, #a855f7, #22d3ee);
+            font-size: 2rem;
+            font-weight: 300;
+            letter-spacing: 2px;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #818cf8, #c084fc);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
-        .subtitle { color: #888; margin-bottom: 30px; }
-        
-        .controls {
-            max-width: 620px;
-            margin: 0 auto;
-            background: rgba(255,255,255,0.05);
-            padding: 30px;
-            border-radius: 20px;
-            border: 1px solid rgba(168, 85, 247, 0.2);
-        }
-        
-        label {
-            display: block;
-            margin: 18px 0 8px;
-            text-align: left;
-            font-weight: 600;
-            color: #c4b5fd;
-        }
-        
-        select, input[type="range"], input[type="number"] {
-            width: 100%;
-            padding: 12px;
-            background: #1f1b2e;
-            border: 1px solid #6b5b95;
-            border-radius: 8px;
-            color: #e0e0ff;
-            font-size: 1rem;
-        }
-        
-        .slider-value {
-            float: right;
-            font-family: monospace;
-            color: #22d3ee;
-        }
-        
-        button {
-            margin: 15px 8px;
-            padding: 14px 32px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 50px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        #playBtn {
-            background: #a855f7;
-            color: white;
-        }
-        #stopBtn {
-            background: #ef4444;
-            color: white;
-        }
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px rgba(168, 85, 247, 0.3);
-        }
-        
-        .status {
-            margin-top: 20px;
-            padding: 12px;
-            border-radius: 8px;
-            font-family: monospace;
-            min-height: 24px;
-        }
-        .visualizer {
-            height: 120px;
-            background: #0a0a0a;
-            margin: 25px auto;
-            border-radius: 12px;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid #4c1d95;
-        }
-        .bars {
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            height: 100%;
-            gap: 6px;
-        }
-        .bar {
-            width: 18px;
-            background: linear-gradient(to top, #a855f7, #22d3ee);
-            transition: height 0.1s ease;
-        }
-        
-        footer {
-            margin-top: 50px;
-            color: #555;
+
+        p.subtitle {
+            color: var(--text-muted);
             font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+
+        .status-panel {
+            background: rgba(0,0,0,0.3);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            text-align: left;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .control-group label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+        }
+
+        select {
+            width: 100%;
+            padding: 0.8rem;
+            background: rgba(0,0,0,0.3);
+            color: var(--text-main);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 1rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .play-btn {
+            margin-top: 2rem;
+            background: transparent;
+            border: 2px solid var(--accent);
+            color: var(--text-main);
+            padding: 1rem 3rem;
+            font-size: 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .play-btn:hover {
+            background: var(--accent);
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .play-btn.active {
+            background: var(--accent);
+            box-shadow: 0 0 30px var(--accent-glow);
+            border-color: transparent;
+        }
+
+        /* Aura Visualizer Effect */
+        .aura-visualizer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            opacity: 0;
+            z-index: 0;
+            pointer-events: none;
+            transition: opacity 2s ease;
+        }
+
+        .aura-visualizer.playing {
+            opacity: 0.4;
+            animation: pulse 8s infinite alternate ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.2; }
+            100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0.6; }
         }
     </style>
 </head>
 <body>
-    <h1>AuroAmbient-Bass</h1>
-    <p class="subtitle">Generative ambient bass • Adaptive to time &amp; mood</p>
-    
-    <div class="controls">
-        <label>Mood</label>
-        <select id="mood">
-            <option value="calm">Calm / Deep Relaxation</option>
-            <option value="focus">Focus / Deep Work</option>
-            <option value="energetic">Energetic / Uplifting</option>
-            <option value="dreamy">Dreamy / Nocturnal</option>
-            <option value="meditative">Meditative / Ambient</option>
-        </select>
-        
-        <label>Base Frequency (Hz) <span class="slider-value" id="freqVal">55</span></label>
-        <input type="range" id="freq" min="30" max="120" value="55" step="1">
-        
-        <label>Intensity / Volume <span class="slider-value" id="intensityVal">65</span></label>
-        <input type="range" id="intensity" min="20" max="100" value="65" step="1">
-        
-        <label>Room Reverb <span class="slider-value" id="reverbVal">70</span></label>
-        <input type="range" id="reverb" min="0" max="100" value="70" step="1">
-        
-        <label>Modulation Speed <span class="slider-value" id="modVal">40</span></label>
-        <input type="range" id="modulation" min="0" max="100" value="40" step="1">
-        
-        <div style="margin-top: 30px;">
-            <button id="playBtn">▶ Generate &amp; Play Bass Layers</button>
-            <button id="stopBtn">■ Stop All</button>
+
+    <div class="aura-visualizer" id="aura"></div>
+
+    <div class="container">
+        <h1>AuraAmbient-Bass</h1>
+        <p class="subtitle">Generative Audio & Smart Environmental Adaptation</p>
+
+        <div class="status-panel">
+            <div id="timeDisplay">Time: --:--</div>
+            <div id="vibeDisplay">Vibe: Detecting...</div>
         </div>
-        
-        <div class="visualizer" id="visualizer">
-            <div class="bars" id="bars"></div>
+
+        <div class="controls">
+            <!-- Mood Input -->
+            <div class="control-group">
+                <label for="moodSelect">Mood</label>
+                <select id="moodSelect">
+                    <option value="calm">Calm & Relaxed</option>
+                    <option value="focus">Deep Focus</option>
+                    <option value="energetic">Energetic Pulse</option>
+                    <option value="sleep">Deep Sleep (Sub-bass)</option>
+                </select>
+            </div>
+
+            <!-- Frequency Range Input -->
+            <div class="control-group">
+                <label for="freqSlider">
+                    <span>Base Frequency</span>
+                    <span id="freqVal">55 Hz</span>
+                </label>
+                <input type="range" id="freqSlider" min="30" max="120" value="55" step="1">
+            </div>
+
+            <!-- Apartment Room Simulation (Reverb/Space) -->
+            <div class="control-group">
+                <label for="spaceSlider">
+                    <span>Acoustic Space (Multi-room Sim)</span>
+                    <span id="spaceVal">Medium</span>
+                </label>
+                <input type="range" id="spaceSlider" min="1" max="20" value="8" step="0.5">
+            </div>
         </div>
-        
-        <div class="status" id="status">Ready — Waiting for play...</div>
+
+        <button class="play-btn" id="playBtn">Start Aura</button>
     </div>
-    
-    <footer>
-        Time-aware • Multi-layer synthesis • Apartment ambient experience
-    </footer>
 
     <script>
-        let audioContext;
-        let sources = [];
-        let gainNode, masterGain;
-        let analyser;
-        let animationFrame;
+        // --- Core Variables ---
+        let synth, filter, reverb, chorus, lfo, loop;
         let isPlaying = false;
-        
-        const barsContainer = document.getElementById('bars');
-        
-        // Create visualizer bars
-        function initVisualizer() {
-            barsContainer.innerHTML = '';
-            for (let i = 0; i < 12; i++) {
-                const bar = document.createElement('div');
-                bar.className = 'bar';
-                barsContainer.appendChild(bar);
+        let timeMultiplier = 1;
+        let baseFrequency = 55;
+
+        // UI Elements
+        const playBtn = document.getElementById('playBtn');
+        const moodSelect = document.getElementById('moodSelect');
+        const freqSlider = document.getElementById('freqSlider');
+        const freqVal = document.getElementById('freqVal');
+        const spaceSlider = document.getElementById('spaceSlider');
+        const spaceVal = document.getElementById('spaceVal');
+        const timeDisplay = document.getElementById('timeDisplay');
+        const vibeDisplay = document.getElementById('vibeDisplay');
+        const aura = document.getElementById('aura');
+
+        // --- Environmental Logic (Time Detection) ---
+        function updateEnvironment() {
+            const now = new Date();
+            const hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            timeDisplay.textContent = `Time: ${hours}:${minutes}`;
+
+            let vibe = "";
+            // Adjust generator multiplier based on time
+            if (hours >= 5 && hours < 12) {
+                vibe = "Morning Light";
+                timeMultiplier = 1.2; // Brighter, slightly faster modulation
+            } else if (hours >= 12 && hours < 18) {
+                vibe = "Afternoon Flow";
+                timeMultiplier = 1.0; // Balanced
+            } else if (hours >= 18 && hours < 23) {
+                vibe = "Evening Chill";
+                timeMultiplier = 0.7; // Slower, deeper
+            } else {
+                vibe = "Deep Night";
+                timeMultiplier = 0.4; // Very slow, sub-bass heavy
             }
+            vibeDisplay.textContent = `Vibe: ${vibe}`;
         }
-        
-        function updateVisualizer() {
-            if (!analyser || !isPlaying) return;
+
+        // --- Audio Engine Setup (Web Audio API via Tone.js) ---
+        async function initAudio() {
+            await Tone.start();
+
+            // 1. Spatial & Multi-room effects
+            reverb = new Tone.Reverb({ decay: spaceSlider.value, wet: 0.6 }).toDestination();
             
-            const bufferLength = analyser.frequencyBinCount;
-            const dataArray = new Uint8Array(bufferLength);
-            analyser.getByteFrequencyData(dataArray);
+            // 2. Filtering to keep bass smooth and avoid harsh highs
+            filter = new Tone.Filter({ type: "lowpass", frequency: 150, rolloff: -24 }).connect(reverb);
             
-            const bars = barsContainer.children;
-            for (let i = 0; i < bars.length; i++) {
-                const value = dataArray[Math.floor(i * bufferLength / bars.length)] || 0;
-                const height = Math.max(8, (value / 255) * 100);
-                bars[i].style.height = `${height}%`;
-            }
-            
-            animationFrame = requestAnimationFrame(updateVisualizer);
+            // 3. Chorus to widen the bass for "apartment-wide" feel
+            chorus = new Tone.Chorus(4, 2.5, 0.5).connect(filter).start();
+
+            // 4. Generative FMSynth for deep ambient textures
+            synth = new Tone.FMSynth({
+                harmonicity: 0.5,
+                modulationIndex: 1.2,
+                oscillator: { type: "sine" },
+                modulation: { type: "triangle" },
+                envelope: { attack: 3, decay: 2, sustain: 1, release: 6 }
+            }).connect(chorus);
+
+            // 5. LFO to slowly modulate the filter cutoff (Generative breath)
+            lfo = new Tone.LFO(0.1, 40, 200).connect(filter.frequency).start();
+
+            // 6. Generative Loop: Creates slow, evolving tonal shifts around the base frequency
+            loop = new Tone.Loop((time) => {
+                if(!isPlaying) return;
+                // Procedural pitch drift (-3Hz to +3Hz)
+                const drift = (Math.random() - 0.5) * 6; 
+                synth.frequency.rampTo(baseFrequency + drift, 4, time);
+            }, "2m");
+
+            Tone.Transport.bpm.value = 40; // Very slow ambient tempo
+            applyParameters();
         }
-        
-        function getTimeAdjustment() {
-            const hour = new Date().getHours();
-            if (hour >= 22 || hour <= 5) return { depth: 0.75, brightness: 0.6 };   // Deep night
-            if (hour >= 6 && hour <= 10) return { depth: 1.1, brightness: 1.2 };   // Morning
-            if (hour >= 18 && hour <= 21) return { depth: 0.85, brightness: 0.9 }; // Evening
-            return { depth: 1.0, brightness: 1.0 }; // Day
-        }
-        
-        function generateBassLayer(baseFreq, detune, type, gainVal, filterFreq) {
-            const osc = audioContext.createOscillator();
-            osc.type = type;
-            osc.frequency.setValueAtTime(baseFreq, audioContext.currentTime);
-            osc.detune.setValueAtTime(detune, audioContext.currentTime);
+
+        // --- Parameter Adjustments ---
+        function applyParameters() {
+            if (!synth) return;
+
+            baseFrequency = parseFloat(freqSlider.value);
+            const mood = moodSelect.value;
+            const space = parseFloat(spaceSlider.value);
+
+            // Update spatial reverb
+            reverb.decay = space;
             
-            const gain = audioContext.createGain();
-            gain.gain.value = gainVal;
-            
-            const filter = audioContext.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = filterFreq;
-            
-            // Subtle LFO modulation
-            const lfo = audioContext.createOscillator();
-            lfo.type = 'sine';
-            lfo.frequency.value = 0.1 + Math.random() * 0.3;
-            
-            const lfoGain = audioContext.createGain();
-            lfoGain.gain.value = 8;
-            
-            lfo.connect(lfoGain);
-            lfoGain.connect(osc.frequency);
-            lfo.start();
-            
-            osc.connect(filter);
-            filter.connect(gain);
-            gain.connect(masterGain);
-            
-            osc.start();
-            sources.push({osc, gain, lfo});
-            return gain;
-        }
-        
-        function generateAndPlay() {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                masterGain = audioContext.createGain();
-                masterGain.gain.value = 0.75;
-                
-                analyser = audioContext.createAnalyser();
-                analyser.fftSize = 256;
-                masterGain.connect(analyser);
-                analyser.connect(audioContext.destination);
-            }
-            
-            // Clear previous
-            stopAudio(false);
-            
-            const mood = document.getElementById('mood').value;
-            let baseFreq = parseInt(document.getElementById('freq').value);
-            const intensity = parseInt(document.getElementById('intensity').value) / 100;
-            const reverbAmount = parseInt(document.getElementById('reverb').value) / 100;
-            const modSpeed = parseInt(document.getElementById('modulation').value) / 100;
-            
-            const timeAdj = getTimeAdjustment();
-            baseFreq = Math.round(baseFreq * timeAdj.depth);
-            
-            // Map mood to parameters
-            let layerConfigs = [];
+            let lfoSpeed = 0.1;
+            let filterMax = 150;
+            let modIndex = 1.2;
+
+            // Apply Mood logic
             switch(mood) {
-                case 'calm':
-                    layerConfigs = [
-                        {type: 'sine', detune: -12, gain: 0.6, filter: 180},
-                        {type: 'triangle', detune: 7, gain: 0.4, filter: 140}
-                    ];
-                    break;
-                case 'focus':
-                    layerConfigs = [
-                        {type: 'sawtooth', detune: -18, gain: 0.45, filter: 220},
-                        {type: 'sine', detune: 0, gain: 0.55, filter: 160}
-                    ];
-                    break;
-                case 'energetic':
-                    layerConfigs = [
-                        {type: 'square', detune: -25, gain: 0.35, filter: 280},
-                        {type: 'sawtooth', detune: 15, gain: 0.4, filter: 200},
-                        {type: 'sine', detune: -5, gain: 0.5, filter: 150}
-                    ];
-                    break;
-                case 'dreamy':
-                    layerConfigs = [
-                        {type: 'sine', detune: -30, gain: 0.65, filter: 120},
-                        {type: 'triangle', detune: 20, gain: 0.35, filter: 90}
-                    ];
-                    break;
-                case 'meditative':
-                    layerConfigs = [
-                        {type: 'sine', detune: 0, gain: 0.7, filter: 110},
-                        {type: 'triangle', detune: -10, gain: 0.4, filter: 130}
-                    ];
-                    break;
+                case "calm":
+                    lfoSpeed = 0.05; filterMax = 120; modIndex = 1.0; break;
+                case "focus":
+                    lfoSpeed = 0.15; filterMax = 180; modIndex = 1.5; break;
+                case "energetic":
+                    lfoSpeed = 0.4;  filterMax = 300; modIndex = 3.0; break;
+                case "sleep":
+                    lfoSpeed = 0.02; filterMax = 80;  modIndex = 0.5; break;
             }
-            
-            // Create multiple layers
-            layerConfigs.forEach((cfg, i) => {
-                const gainVal = cfg.gain * intensity * (0.8 + Math.random() * 0.4);
-                generateBassLayer(baseFreq, cfg.detune, cfg.type, gainVal, cfg.filter);
-            });
-            
-            // Master gain adjustment with intensity
-            masterGain.gain.value = 0.6 + intensity * 0.5;
-            
-            isPlaying = true;
-            document.getElementById('status').innerHTML = 
-                `Playing ${mood} bass • ${baseFreq}Hz • ${new Date().toLocaleTimeString([], {hour:'numeric', minute:'2-digit'})}`;
-            document.getElementById('status').style.color = '#22d3ee';
-            
-            initVisualizer();
-            updateVisualizer();
-        }
-        
-        function stopAudio(resetStatus = true) {
-            sources.forEach(s => {
-                try {
-                    s.osc.stop();
-                    s.lfo.stop();
-                } catch(e) {}
-            });
-            sources = [];
-            
-            if (animationFrame) cancelAnimationFrame(animationFrame);
-            
-            const bars = barsContainer.children;
-            for (let bar of bars) bar.style.height = '8%';
-            
-            isPlaying = false;
-            
-            if (resetStatus) {
-                document.getElementById('status').innerHTML = 'Stopped. Ready for new generation.';
-                document.getElementById('status').style.color = '#888';
+
+            // Combine Mood and Time multipliers
+            lfo.frequency.rampTo(lfoSpeed * timeMultiplier, 1);
+            lfo.min = baseFrequency - 10;
+            lfo.max = filterMax;
+            synth.modulationIndex.value = modIndex;
+
+            if (isPlaying) {
+                synth.frequency.rampTo(baseFrequency, 2);
             }
         }
-        
-        // Event listeners
-        document.getElementById('playBtn').addEventListener('click', generateAndPlay);
-        document.getElementById('stopBtn').addEventListener('click', () => stopAudio(true));
-        
-        // Live slider value display
-        const sliders = ['freq', 'intensity', 'reverb', 'modulation'];
-        sliders.forEach(id => {
-            const slider = document.getElementById(id);
-            const valEl = document.getElementById(id + 'Val');
-            slider.addEventListener('input', () => {
-                valEl.textContent = slider.value;
-            });
+
+        // --- Event Listeners ---
+        freqSlider.addEventListener('input', (e) => {
+            freqVal.textContent = `${e.target.value} Hz`;
+            applyParameters();
         });
-        
-        // Auto-start context on first interaction (browser policy)
-        document.addEventListener('click', () => {
-            if (!audioContext) {
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+        spaceSlider.addEventListener('input', (e) => {
+            let label = "Medium";
+            if(e.target.value < 6) label = "Small Room";
+            else if(e.target.value > 15) label = "Massive Hall";
+            else label = "Whole Apartment";
+            spaceVal.textContent = label;
+            applyParameters();
+        });
+
+        moodSelect.addEventListener('change', applyParameters);
+
+        playBtn.addEventListener('click', async () => {
+            if (!synth) {
+                await initAudio();
             }
-        }, {once: true});
-        
-        // Keyboard support
-        document.addEventListener('keydown', e => {
-            if (e.key === " " && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "SELECT") {
-                e.preventDefault();
-                if (isPlaying) stopAudio(true);
-                else generateAndPlay();
+
+            if (isPlaying) {
+                // Stop Audio
+                synth.triggerRelease();
+                Tone.Transport.stop();
+                loop.stop();
+                playBtn.textContent = "Start Aura";
+                playBtn.classList.remove('active');
+                aura.classList.remove('playing');
+                isPlaying = false;
+            } else {
+                // Play Audio
+                await Tone.start();
+                updateEnvironment();
+                applyParameters();
+                synth.triggerAttack(baseFrequency);
+                Tone.Transport.start();
+                loop.start(0);
+                playBtn.textContent = "Stop Aura";
+                playBtn.classList.add('active');
+                aura.classList.add('playing');
+                isPlaying = true;
             }
         });
-        
-        // Initialize
-        initVisualizer();
-        console.log('%cAuroAmbient-Bass ready. Multi-layer generative bass engine loaded.', 'color:#a855f7; font-family:monospace');
+
+        // Initialize Environment checks
+        updateEnvironment();
+        setInterval(updateEnvironment, 60000); // Check time every minute
     </script>
 </body>
-    </html>
+</html>
